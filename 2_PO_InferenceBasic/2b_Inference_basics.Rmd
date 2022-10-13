@@ -1,0 +1,434 @@
+---
+title: '200C Section W2: Statistical Inference Basics'
+author: 'Soonhong Cho'
+date: "April 8, 2022"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This document is based on past section notes and slides by previous TAs, Aaron Rudkin and Ciara Sterbenz.
+
+## Inference
+
+Recall that identification is about what quantities are estimable if we had infinite data and so we didn't have to worry about random variability. So, in identification world we abstracted away from the idea of uncertainty: can we learn this estimand in a situation with basically zero standard errors?
+
+Now a brief review of some of the concepts of inference. Inference (in a statistical sense) relies on using known statistical properties and assumptions to draw a conclusion under the presence of uncertainty. We often want to know something about a population -- what proportion of people would vote Democratic, or how many people in our sample report paying a bribe -- but cannot directly observe it. We rely on measurements that come from samples. Once we have a sample, nothing about our sample is uncertainty: we can say without a doubt what proportion of our sample reports voting Democratic. But we still have a great deal of uncertainty about the population. Inference is this estimation: trying to learn something about a population from our sample.
+
+The simplest case is i.i.d sample from a population. Even though we sample observations randomly, no sample is guaranteed to provide us with an accurate representation of the population. Still, we can get a better chance of obtaining a good representation of the population over repeated samples. Let's begin with some basic concepts, some of which were present in the last assignment:
+
+## Variance, Standard Deviation
+
+Suppose we have a random variable $X$. You know that a random variable $X$ has a <span style="color:red;">variance</span>. Variance is one possible measure of the "spread" of the variable. We know that the formula for a random variable's variance is:
+
+$$
+  \mathbb{V}[X] = \sigma^2 = \mathbb{E}[(X - \mathbb{E}[X])^2]
+$$
+Which is mathematically equivalent to:
+$$
+  \mathbb{V}[X] = \sigma^2 = \mathbb{E}[X^2] - \mathbb{E}[X]^2
+$$
+
+Or, in a finite sample, the (uncorrected -- don't worry about this) sample variance can be estimated as:
+$$
+  \mathbb{V}[X] = s^2 = \frac{1}{N} \sum_{i=1}^{n} (X_i - \mu)^2
+$$
+where $\mu$ is the sample mean. It also ends up that this -- well, a slightly modified version of this (<span style="color:red;">Bessel's Correction</span>, which replaces $\frac{1}{N}$ with $\frac{1}{N-1}$) -- is an unbiased estimator of the population variance. Note that we sometimes see the sample variance depicted as "$s^2$" rather than "$\sigma^2$" (the population variance). Another term used is $\hat{\sigma}^2$ (the estimated variance). We know that a related quantity is the standard deviation (the square root of the variance), often written $\sigma$, $s$, or $\hat{\sigma}$. These quantities are properties of either a population or a single sample.
+
+## Sampling Distribution, Standard Error
+
+In general, though, we are less interested in the variation within this single sample we got, and more interested in the hypothetical variation between samples. What if we took a different sample, how would our estimate differ?
+
+Let's look at some real data -- this is from the U.S. National Health Interview Study, and we're going to treat it as our population ($N = 4347$):
+```{r echo=FALSE}
+population_data <- read.csv("height_data.csv")
+population_data <- population_data[population_data$height <= 76, ]
+
+plot(density(population_data$height),
+     main = "Human Height: Population data",
+     xlab = "Height in Inches",
+     ylab = "Density", yaxt="n")
+abline(v = mean(population_data$height), col="red")
+text(72, 0.07, label = paste("Mean height: ", round(mean(population_data$height), 2)), pos=4)
+text(72, 0.062, label = paste("SD height: ", round(sd(population_data$height), 2)), pos=4)
+```
+
+Suppose we could not afford to gather all this data, and we instead relied on a small sample of $N=20$ people. We might get a sample that had a similar mean as our population... or we might not. I am going to draw three samples of $N=20$ from this population, and look at how they differ:
+
+```{r echo=FALSE}
+set.seed(17643)
+big_sample = population_data[sample(1:nrow(population_data), 20, replace=TRUE), ]
+set.seed(9533)
+little_sample = population_data[sample(1:nrow(population_data), 20, replace=TRUE), ]
+set.seed(1)
+average_sample = population_data[sample(1:nrow(population_data), 20, replace=TRUE), ]
+
+plot(density(average_sample$height), main="Human Heights: Three Samples",
+     xlab = "Height in Inches", ylab="Density", yaxt="n")
+lines(density(little_sample$height), col="blue")
+lines(density(big_sample$height), col="red")
+abline(v=mean(average_sample$height), col="black")
+abline(v=mean(big_sample$height), col="red")
+abline(v=mean(little_sample$height), col="blue")
+```
+
+Sometimes you get lucky, other times you don't. We know from previous classes and problems that the sample mean is an unbiased estimator for the population mean; and we can see this. Now, I'm going to take 5,000 samples of size $N=20$, and look at the means I get:
+
+```{r echo=FALSE}
+set.seed(1)
+mean_dist = replicate(5000,
+                      mean(population_data[sample(1:nrow(population_data), 20, replace=TRUE), ]$height))
+
+plot(density(mean_dist),
+     main = "Sampling Distribution: Mean Human Height",
+     xlab = "Mean Height in Inches",
+     yaxt = "n")
+abline(v = mean(mean_dist), col="red")
+```
+
+This graph shows us a "<span style="color:red;">sampling distribution</span>". *A sampling distribution is the distribution of an estimate of interest under repeated sampling.* In other words, if we repeated our sample again and again and again, the frequency of results would look like this -- generally in the middle, sometimes out in the tails. This is not a distribution of heights; this is a distribution of sample mean heights. The mean of the sampling distribution is unbiased for the population mean (Why? -- this is literally what being unbiased means. Note that our estimator here is sample mean the great! You mathematically proved the unbiasedness of sample mean in Pset 1 Question 2.f).
+
+But this is getting closer to something we're interested in: the variation across samples tells us something about the uncertainty we have about any one sample versus the population mean. Ideally, we'd like to be looking at the standard deviation of the sampling distribution. **The standard deviation of the sampling distribution is called the <span style="color:red;">standard error</span>.** 
+
+Repeat: **The standard deviation of the sampling distribution is called the <span style="color:red;">standard error</span>.** The standard error has great utility as a metric of variability, and is fundamental to how we make statistical inferences.
+
+In general, a standard error is the standard deviation of the sampling distribution of any estimated quantity. In this case, we're looking at the sampling distribution of a mean, so the standard deviation is the <span style="color:red;">standard error of the mean (SEM)</span> (You derived the variance of the sample mean, $Var(\bar{X})$ in Pset 1 2 g). SEM is it's square root). For the record, in this case, our SEM is `r round(sd(mean_dist), 3)`.
+
+The problem is that we do not see the sampling distribution. We see one sample. We don't have the money to keep taking more samples. But we can learn something about the SEM via this simple transformation of the population standard deviation:
+
+$$
+  SEM = SE_{\bar{x}} = \sigma_{\bar{x}} = \frac{\sigma_x}{\sqrt{n}}
+$$
+Note that this implies that as our individual samples get larger, the uncertainty between samples gets smaller. Computing it using the data we have above:
+
+```{r}
+sd(population_data$height) / sqrt(20)
+```
+
+As I mentioned above, the sample standard deviation needs to be corrected to approximate the population standard deviation; the good news is that R's `sd` command does this by default. Finally, we have an estimate of uncertainty for our mean, even though we only took one sample.
+
+**Review**:
+
+1. A population can have a distribution of values. We can use moments to characterize that population, including a mean, a variance, and a standard deviation.
+2. A sample from that population similarly has a distribution of values. We can use moments to characterize that sample, including a mean, a variance, and a standard deviation. The sample mean is an unbiased estimator for the population mean. The sample standard deviation is, under some conditions, an unbiased estimator for the population standard deviation.
+3. Ideally we would love to sample again and again to see the sampling distribution of whatever quantity we want to estimate (like a mean). The standard deviation of this distribution is called the standard error.
+4. We can't sample again and again in the real world, so we can't get the standard error. But the standard error of the mean's sampling distribution is calculated as $\frac{\sigma_x}{\sqrt{n}}$. 
+5. We can't see the population standard deviation, but like I said above, we can use the sample standard deviation instead as an unbiased estimator for the population standard deviation.
+
+
+## Confidence Intervals
+
+We are interested in using the standard error of the mean (SEM), which we calculate from our single sample, to tell us something about the range of reasonable values we might expect the true population mean to be in. We can't know for sure what the true population mean is.
+
+Remember, above, that we saw that the sampling distribution is (approximately) normal? This results from the <span style="color:red;">Central Limit Theorem (CLT)</span>. The Central Limit Theorem says that the sampling distribution of the sum of i.i.d. random variables tends towards a normal distribution, even if the original random variables are not themselves normal. Note that a mean is itself a normalized sum (sum divided by size), and so the CLT applies to our sampling distribution of sample means. Each sample mean is a normalized sum of i.i.d. random variables. But, of course, the rate of speed with which the CLT "kicks in" depends on the underlying distribution of the original variable (You observed this differential rate of speed via simulation in Pset1 Question 5. Remember that $X_1 \sim N(5, 2)$ and $X_2 \sim exp(\lambda=1)$, the t-confidence intervals works well in terms of coverage rate even in small sample for $X_1$ but not for $X_2$, though it gets better as sample size increases. It's because t-confidence interval is assumed to approximate the sampling distribution by a t-distribution, which approaches to normal as sample size increases.)
+
+Let's remember our objective: we have a sample mean (which we think is unbiased for the population mean in expectation, but we have no idea if we got a high or low sample). We have a SEM which we estimated using our sample standard deviation. We are interested in knowing what, given our sample, are a plausible range of values for the population mean.
+
+We also know that the mean of the sampling distribution is the population mean, and we know that the sampling distribution is normal, and we know the shape of a normal distribution (68% within one standard deviation, 95% within 1.96, 99.7% within 3). If this sounds new, you should check out the normal distribution.
+
+So, we proceed as follows:
+
+1. Imagine our sample mean is the mean of the sampling distribution.
+2. Using our SEM, draw a normal distribution around the sample mean.
+3. Based on the level of confidence we're interested in, select the range of values in that distribution which contain a certain amount of density and are centered at the mean.
+
+In a normal distribution, if we want a 95\% confidence interval, we know that 95\% of the density falls within 1.96 standard deviations of the mean, so in this case our confidence interval is $\mu \pm 1.96 * SE_{\mu}$. Using our data above: `r mean(average_sample$height) - 1.96 * (sd(average_sample$height) / sqrt(20))` - `r mean(average_sample$height) + 1.96 * (sd(average_sample$height) / sqrt(20))` would be a reasonable confidence interval, based on the black sample I drew.
+
+How did I figure out that 95\% of the density of a normal distribution is within 1.96 standard deviations of the mean? In R, I can do this simply:
+```{r}
+# We want 95% confidence
+confidence_level = 0.95
+# In other words, only this percentage of density is outside the interval:
+alpha = 1 - confidence_level
+# If it's 95% in the center, then that's the same as 5%/2 on the left, and 5%/2 on the right:
+critical_quantiles = c((alpha/2), 1 - (alpha/2))
+# Now:
+qnorm(p = critical_quantiles, mean = 0, sd = 1)
+# The default normal distribution is actually mean 0 sd 1:
+qnorm(p = critical_quantiles)
+```
+
+What's going on here? We know that the normal distribution can be transformed into a distribution called the "standard normal distribution". How do we do this? Where X is a normally distributed random variable:
+
+$$
+  z = \frac{X - \mu_X}{\sigma_X}
+$$
+This means we move the mean to 0, and we normalize -- whatever the initial standard deviation was, in the standard normal, it becomes 1. We figure out what z-score on the standard normal represents the quantile we're interested in (in this case, the 97.5% quantile), and then compare that z-score to the z-score of the observed quantity.
+
+See above that we used the `qnorm` function. "q" stands for quantile: we are interested in, assuming the mean and standard deviation we provide, knowing what a given quantile of the normal distribution is. So we know that 95\% of the density of a normal distribution is within 1.96 standard errors, and the 95\% confidence interval of the population mean within 1.96 standard errors of the mean.
+
+What does a <span style="color:red;">confidence interval</span> tell us? If we were to repeat this sampling process, we believe 95\% of the confidence intervals we construct about our sample mean would contain the true population parameter. It does not mean "We are 95\% sure our current sample contains the population parameter." -- although if our current sample was an average sample, that would be true. It does not mean 95\% of the sample means will fall within this sample's 95\% confidence interval. The 95\% is not about the interval -- it is a claim about the process that allowed us to derive the interval from our sample statistic.
+
+The symmetry of the normal distribution gives rise to an interesting property. For any value $X$ inside the confidence interval, if we drew a confidence interval of equal size around $X$, our sample mean would fall in that confidence interval. This "inverted" view will come into play in our next section. So, for example, if $X$ is the lowest value inside our confidence interval, then the sample mean would be the highest value inside a confidence interval of the same size drawn around $X$:
+
+```{r echo=FALSE}
+val_seq = seq(-5, 5, length.out=1000)
+plot(val_seq, dnorm(val_seq), type="l",
+     main = "Confidence interval: Conventional and inverted interpretation",
+     xlab = "X",
+     ylab = "Density",
+     yaxt = "n",
+     xlim=c(-3, 5)
+     )
+lines(val_seq + 4, dnorm(val_seq + 4, mean = 1.96), col="red")
+abline(v = 1.96, col="red")
+abline(v = qnorm(0.025, mean = 1.96), col="black")
+```
+
+Note that we have no way of knowing if the population mean is within our confidence interval. We know that 95\% of our confidence intervals contain the population mean, but we have no idea if we are in a 95\% sample or a 5\% sample. We also have no idea of knowing where the population mean is within our confidence interval, if it is.
+
+## Hypothesis Testing
+
+(Null) <span style="color:red;">hypothesis testing</span> is one of the main frameworks for assessing claims in statistics. It is not the only such framework, and many prominent statisticians are suspicious of the endeavor. But we should still learn the concept. Hypothesis testing proceeds as follows:
+
+1. Come up with a "null hypothesis" ($H_0$). This is something you very specifically don't believe to be true, but you temporarily assume it to be true for the purpose of evaluating an "alternative hypothesis". We cannot prove the null hypothesis is true. We cannot prove the null hypothesis is false. We imagine it, and then we take it as an assumption. Often, this is something completely asinine: say, for example "I ran a regression on the relationship between social conservative values and opposition to abortion. My null hypothesis is that social conservative values have no association with opposition to abortion, and the true $\beta$ on my regression is 0". You are setting this up to knock it down later.
+
+2. Come up with an "alternative hypothesis" ($H_a$). The alternative hypothesis should either be the opposite of the null hypothesis ("The true $\beta$ on my regression is not 0") or an inequality on one side of the null hypothesis ("The true $\beta$ on my regression is higher than 0"). For the rest of this section I will assume a "two-tailed test", which is of the form "The true $\beta$ on my regression is not 0".
+
+3. Under the assumption that your null hypothesis is true, you do inference to figure out how likely it would be to see the pattern you did see in your data. Essentially, we imagine a "null distribution" -- like a sampling distribution assuming the null distribution is true.
+
+4. If the pattern you see in your data is very unlikely, assume "Well, then, the null hypothesis is probably not true". If, on the other hand, it's very easy to believe that the pattern you see in your data could emerge, then you conclude "Well, I guess it's possible my null hypothesis is right."
+
+To be clear:
+
+  - You cannot prove a null hypothesis is true
+  - You cannot prove a null hypothesis is false
+  - You cannot prove an alternative hypothesis is true
+  - You cannot prove an alternative hypothesis is false
+  - You can, with evidence, say "The null hypothesis is sufficiently unlikely that I reject it". This does not make it false.
+  - You cannot say "The null hypothesis is sufficiently likely that I accept it".
+  - You can say "I am unable to reject the null hypothesis". This is not the same thing. It may be the case that the data is too noisy to be sure; it may be the case that the true value is close enough to the null that you can't be sure; it may be that you have a very unlikely sample; it may be many things other than the null hypothesis being true.
+
+Imagine you are a juror trying to decide on a criminal case. What is the null hypothesis? What is the alternative hypothesis?
+
+Misunderstanding the concept of null hypothesis testing is probably the single biggest mistake occurring in the use of statistics in empirical work. Be careful with your words.
+
+How does the null hypothesis framework relate to the confidence intervals you learned above? Imagine your null hypothesis is that the true population mean is 0, while your alternative hypothesis is that the mean is not 0. We assume that the true population parameter is 0. We draw a confidence interval around 0; the width of the confidence interval comes from the $SEM$, which we calculated using our sample standard deviation. Now, we ask how likely it is that we saw the pattern we saw in our sample -- the sample mean -- if it were really true that the population mean were zero. Because the sample mean we calculated is outside the confidence interval under the null, we conclude the null hypothesis is unlikely, and reject it.
+
+But a null of zero is nonsense when dealing with human height. So maybe a question we might be interested in is "What set of null hypotheses could we reject?" -- because of the property I mentioned above in the depiction of the inverted view of the confidence interval, we actually know that any null hypothesis whose value is outside the confidence interval will be rejected, and any null hypothesis whose value is inside the confidence interval will not be rejected.
+
+NHT is an unusual process. We essentially act as an devil's advocate against the results we observed, and then when we are satisfied we have proven our own fake position incorrect, we continue on with our original results as planned.
+
+## p-values
+
+A <span style="color:red;">p-value</span> refers to the probability that, **if the null hypothesis were true (again, it isn't!), we would find data at least as "favourable" to our alternative hypothesis as the data we observe**. (Diez, Barr, and Cetinkaya-Rundel) We sometimes hear this said as **"What is the probability, under the null, we find data at least as extreme as that which was observed"**. 
+
+Again, the p-value is not a probability that our data are true (our data are true!). It is not a probability that the null hypothesis is true. It is not a probability that the alternative hypothesis is true. It is not, strictly speaking, a probability that the effects were produced by random chance. It does not tell us anything about the size of the effect. It does not tell us if an effect is interesting. It does not tell us if an effect is important. And there is nothing magic about $p$-value of 0.05, or about any threshold, or about the word "significance".
+
+We can get a p-value by drawing the sampling distribution of the quantity of interest assuming the null hypothesis is true. Then, given that this sampling distribution is known to be normal, what density is at least as far out in the "tail" of this distribution as our data?
+
+Consider the following example:
+
+```{r echo=FALSE}
+seq_val = seq(-5, 5, length.out=2000)
+plot(seq_val, dnorm(seq_val), 
+     type="l",
+     main = "The Null and the p-value",
+     yaxt="n",
+     ylab="",
+     xlab="Effect Size",
+     xlim=c(-5, 5),
+     xaxt="n")
+text(-5, 0.35, label="Observed Effect: 1.3", col="red", pos=4)
+text(-5, 0.3, label="Assuming the null hypothesis \nis true...", pos=4)
+abline(v = 1.3, col="red")
+text(1.4, 0.25, 
+     label=paste0("The probability we would\nsee an effect this large:\n", 
+                  round(1 - pnorm(1.3), 3),
+                  "\n\nWe cannot reject the null \nhypothesis."),
+     pos=4)
+```
+
+## The "t" distribution
+
+Until now, I have proceeded telling you that sampling distributions are normal. This is not exactly true. As you may have seen on the first assignment, this is not exactly true, and when it isn't true, coverage (the percentage of the time our confidence interval actually contains the population mean, as determined under simulations that would be impossible with real data) isn't correct.
+
+In general, to achieve the CLT's normality result and be sure in your confidence interval, you want the largest samples possible. The more normal the original data is, the faster the sampling distribution gets to normal as sample sizes increase. The larger the sample sizes, the less impact a fixed level of skew has on the CLT's normality claim.
+
+We will look at ways to insulate ourselves from the problems of small sample sizes (and thus help mitigate some of the issue with skewed data as well). Around a hundred years ago, William Sealy Gosset was working for Guinness Brewery was studying very small sample sizes of barley and he noticed that the Gaussian (normal) properties we've assumed until then were not quite right. Although the random variable he was sampling from was normally distributed, the resulting sampling distributions were not, owing to the small sample sizes. The Central Limit Theorem actually formally makes a statement about how these sampling distributions *approach* normal as sample sizes increase, not that they are normal. Instead, they take a distribution which is symmetric like the normal distribution, but with fatter, flatter tails containing more density. Intuitively, we can basically think about this as a "penalty" -- because we're dealing with ill-conditioned data, the z-score we'd normally need to draw a confidence interval isn't enough. We have to go more standard deviations out into the tails for the same level of confidence. The smaller the sample, the bigger the penalty and the fatter the tails. So his distribution allowed a little bit more extreme values at both ends when sample size is small. He published this paper under the name "Student".
+
+Later, Ronald Fisher called this "Student's Distribution" and called the standardized scores used to calculate critical values "t" (for "test statistic"). Today we generally call it the "<span style="color:red;">t-distribution</span>". Here is a plot of what t looks like with different "degrees of freedom". The term degrees of freedom is a fairly complicated one that comes from solving linear systems under constraints. You should think about a "degree of freedom" as a piece of information you have, and think of calculating statistics as "using up" that information. In specific, the `df` parameter for the t-distribution is equal to $(N - 1)$ where $N$ is your sample size.
+
+```{r cache=TRUE}
+# This version has no animation
+seq_val = seq(-5, 5, length.out=1000)
+df_values = c(1, 5, 10, 15, 20, 25, 30)
+df_colors = c("red", "blue", "green", "orange", "purple", "brown", "darkgrey")
+
+plot(seq_val, dnorm(seq_val), type="l",
+       yaxt="n", xlab="X",
+       ylab = "Density",
+       main = "Normal versus t with varying df")
+
+for(df_iterator in 1:length(df_values)) {
+  lines(seq_val, dt(seq_val, df=df_values[df_iterator]), 
+        col=df_colors[df_iterator])
+}
+
+legend(-4.5, 0.4, 
+       legend=c("Normal", paste0("t, df=", df_values)),
+       col = c("black", df_colors), lty=1, lwd=1)
+```
+
+So we think about the t-distribution as the normal distribution with a "penalty" -- we have to go further out in the tails. In general, you should be using t; if your sample size is large, t will look normal and the penalty will vanish. If your sample size is small, t gives you accurate (nominal) coverage and helps mitigate the issues associated with the CLT having not kicked in enough.
+
+How do we know what our "critical value" is under t? In R:
+
+```{r}
+# Sample size
+N = 10
+# We want 95% confidence
+confidence_level = 0.95
+# In other words, only this percentage of density is outside the interval:
+alpha = 1 - confidence_level
+# If it's 95% in the center, then that's the same as 5%/2 on the left, and 5%/2 on the right:
+critical_quantiles = c((alpha/2), 1 - (alpha/2))
+# Now:
+qt(p = critical_quantiles, df = N - 1)
+```
+
+Observe that at sample size 10, instead of $z = 1.96$ under the normal distribution, we get $t = 2.26$ as a critical value. 
+
+One note about the t-distribution: In general we do not think of a t-distribution as having a mean parameter. The t-distribution is centered at 0. Some packages allow you to specify a "non-centrality parameter", which basically allows you to assume t-distributions centered at something other than 0, but this is not typically a parameter. So we write: $X \sim t(df)$, like: $X \sim t(4)$.
+
+## t-tests: One Sample
+
+A one-sample t-test is a simple test to test whether a mean $\bar{x}$ is different than a null hypothesis value. So, say we take a sample of some quantity, and get the values $-1, 4, 0, 6, 10$. We are interested in knowing whether the mean of this quantity is "statistically significantly" different from 0. In performing a one-sample t-test, we perform the following null hypothesis test: $H_0: \mu_x = 0; H_a: \mu_x \neq 0$. The t-test assumes the population mean is 0 and that the sampling distribution is t-distributed with 4 degrees of freedom (5 - 1).
+
+It transforms the observed mean into a t-score:
+$$
+\begin{aligned}
+  t_{\bar{x}} &= \frac{\bar{x}}{SE_{\bar{x}}} \\
+  &= \frac{\bar{x}}{\frac{\sigma_x}{\sqrt{n}}} \\
+  &= \frac{\bar{x} \, \sqrt{n}}{\sigma_x}
+\end{aligned}
+$$
+Then, it calculates a p-value for the observed t-score, and a confidence interval around it.
+
+```{r echo=FALSE}
+sample_nums = c(-1, 4, 0, 6, 10)
+seq_val = seq(-5, 5, length.out=2000)
+plot(seq_val, dt(seq_val, df = 4), 
+     type="l",
+     main = "One sample t-test (df=4)",
+     xlab = "t",
+     ylab = "Density",
+     yaxt="n")
+abline(v = mean(sample_nums) / (sd(sample_nums) / sqrt(5)), col="red")
+abline(v = qt(0.975, df = 4), lty=2)
+legend(-4.5, 0.35, legend=c("Null t", "Observed t", "Critical value"),
+       lty = c(1, 1, 2),
+       col = c("black", "red", "black"),
+       bty = "n")
+```
+
+As you can see, our observed sample mean is insufficient to reject the null. I presume you do not intend on graphing the null hypothesis all the time, so instead we will see how to do a t-test directly in R:
+
+```{r}
+sample_nums = c(-1, 4, 0, 6, 10)
+t.test(sample_nums)
+```
+
+Or, if you'd like to roll your own:
+```{r}
+sample_nums = c(-1, 4, 0, 6, 10)
+sample_mean = mean(sample_nums)
+sample_sd = sd(sample_nums)
+sample_sem = sample_sd / sqrt(length(sample_nums))
+sample_t = sample_mean / sample_sem
+
+critical_t = qt(0.975, df = length(sample_nums) - 1)
+
+ci = c(sample_mean - critical_t * sample_sem,
+       sample_mean + critical_t * sample_sem)
+
+p_value = 2 * (1 - pt(sample_t, df = length(sample_nums) - 1))
+# Why is the p_value 1 - pt()? Because pt is the cumulative probability up
+# to the critical t value; 1 - pt() tells us how much probability is left in
+# the right tail.
+# Why are we multiplying by 2? Because we did a "2-tailed t-test" -- our H_a
+# is H_a: mu != 0, so we also need to include the probability in the left tail.
+
+ci
+p_value
+```
+
+Of course each of these functions can also be used with a non-0 null hypothesis.
+
+## Two-sample t-tests
+
+A more interesting use of the t-test is comparing two groups to see if they are the same or different. Like, for example, taking a difference in means between treatment and control groups... Hey! That's what we want to do.
+
+That's right, the fancy Neyman standard errors we spent so long on in class are actually nothing more than another way to say the humble two-sample t-test, taught to many students in introductory statistics classes everywhere.
+
+Our confidence interval is:
+$$
+  (\mu_{treated} - \mu_{control}) \pm t_{df} \times SE_{dim}
+$$
+
+We need to define two quantities here:
+
+$$
+  SE_{dim} = \sqrt{\frac{\sigma^2_{treated}}{n_{treated}} + \frac{\sigma^2_{control}}{n_{control}}}
+$$
+This is the Neyman additive variance/SE estimator we saw in class.
+
+$$
+  df = n_{treated} + n_{control} - 2
+$$
+(In practice, there are several ways to calculate the degrees of freedom here; this simple degrees of freedom estimate is wrong and more conservative estimates are better, but I offer this as a baseline)
+
+And suppose we collect the following data:
+```{r echo=FALSE}
+two_sample = structure(list(treated = c(1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 
+0, 0, 0, 0, 0, 0), value = c(6.28277491733707, 7.62691234029955, 
+9.03801932729356, 6.84581840898551, 7.58150741733905, 6.91929243912564, 
+4.93441066475709, 3.37750815505048, 3.40856506943448, 3.91102990493322, 
+5.65003805797582, 5.14476362268632, 3.75321460561962, 3.61995747979524, 
+5.04544506310711, 4.83499479801049, 2.96686645817572, 2.93875726455682
+)), .Names = c("treated", "value"), class = "data.frame", row.names = c(NA, 
+-18L))
+
+knitr::kable(list(data.frame(treated = two_sample[two_sample$treated==1, ]$value),
+                  data.frame(control = two_sample[two_sample$treated==0, ]$value)), 
+             digits=3)
+```
+
+In R:
+
+```{r}
+treated_units = two_sample[two_sample$treated==1, ]$value
+control_units = two_sample[two_sample$treated==0, ]$value
+t.test(treated_units, control_units)
+```
+
+Observe that R's `t.test` method chooses a non-integer number of degrees of freedom (it uses the Welch-Satterthwaite calculation, which is a little more conservative!)
+
+Or rolling our own:
+
+```{r}
+diff_in_means = mean(treated_units) - mean(control_units)
+se_dim = sqrt((var(treated_units) / length(treated_units)) +
+                (var(control_units) / length(control_units)))
+t_dim = diff_in_means / se_dim
+
+critical_t = qt(0.975, df = length(treated_units) + length(control_units) - 2)
+
+ci = c(diff_in_means - critical_t * se_dim,
+       diff_in_means + critical_t * se_dim)
+
+p_value = 2 * (1 - pt(t_dim, 
+                      df = length(treated_units) + length(control_units) - 2))
+```
+
+## Summary
+
+This section consists of a review of much of the material you would have expected to cover in undergraduate statistics courses, and in earlier courses in this method sequence. The idea is that we want you to be very comfortable with the concept of <span style="color:red;">sampling</span>, a <span style="color:red;">sampling distribution</span>, <span style="color:red;">confidence intervals</span>, <span style="color:red;">p-values</span> (and what they aren't), the use of the <span style="color:red;">t-distribution</span> when dealing with small samples, and using one-sample and two-sample <span style="color:red;">t-tests</span>. Inference is the thing that is underpinning all of the work we're doing on the design side of research in this class, and so it's important to grill these basics.
+
+Next week we'll discuss more advanced topics for statistical inference.
+
+
+

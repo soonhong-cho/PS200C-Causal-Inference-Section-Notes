@@ -1,0 +1,294 @@
+---
+title: '200C Section W3: Randomization Inference'
+author: 'Soonhong Cho'
+date: "April 15, 2022"
+output:
+  html_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\mathbb{V}}
+\newcommand{\independent}{\perp\!\!\!\perp}
+
+This document is based on Gerber and Green, *Field experiments* (2012), Imbens and Rubin, *Causal inference in statistics, social, and biomedical sciences* (2015), and Rosenbaum, *Observational Studies* (2002).
+
+ <br>
+
+
+### Quick review quiz
+> Q. True or false: when treatment assignment is completely randomized, the average treatment effect is identified because the randomization guarantees statistical independence between the treatment variable $D_i$ and the observed outcome $Y_i$.
+ 
+ <br>
+ <br>
+ 
+  - False! We must assume ignorability ${Y_{0i},Y_{1i}} \independent D_i$ (i.e. that $D_i$ is fully independent of potential outcomes) in order to identify the ATE. The identification assumption in the question assumes that $D_i$ is independent of $Y_i$, the observed outcome, which we hope is not true in order for our treatment to have an effect (If $Y_i \independent Di$ then it must be that $\E[Y_i]=\E[Y_i|D_i=1]=\E[Y_i|D_i=0]$--what does it mean about ATE: DiM is 0.)
+
+ <br>
+
+
+# Randomization Inference (RI)
+
+### Design-based vs Model-based inference
+ - Recall that identification was about what quantities are estimable if we had infinite data and so we didn't have to worry about random variability. So, in identification world we abstracted away from the idea of uncertainty -- but now let's think about uncertainty.
+ 
+ - For statistical "inference," we want to answer this question: given that we observed some event or sample of events, what can we infer about the data generating process that produced it? We have standard error, confidence intervals, and hypothesis testing with $p$-value as tools to answer the question (please go over last week's section note "w2_Inference_basics.html" for a brief review).
+ 
+ - Generally, we have model-based and design-based approaches to performing statistical inference from data.
+   1. <span style="color:red;">Design-based inference</span>: we only assume randomization in how the sample was drawn and exploit that randomization to infer certain conclusion. Inference proceeds using the observed estimates computed from sample and the **design information** which is available through the probabilities of receiving treatment for each unit, without any external assumptions. The advantages of this framework are: 1) design justifies analysis---we make identification assumptions true by design, 2) due to 1, it can incorporate any complex randomization scheme, and 3) it's free from model assumptions---think about those assumptions of regression, (Randomization inference best illustrates the spirit!) No causation without manipulation" (Holland)
+   
+   2. <span style="color:red;">Model-based inference</span>: we assume a (parametric) statistical model (e.g., binomial, normal, Poisson, etc.) on the data generating process, external to the study design, and use our sample to infer the parameters of the model. The model is considered an unknown construct, and the generality of our conclusion is model dependent. The popular methods of model-based inference include MoM (Method of moments), MLE (Maximum likelihood estimation), and Bayesian inferenc to name a few. The obvious advantage of model-based inference is flexibility. Causality only exists within a theoretical framework (Heckman)
+
+
+### Logic of hypothesis testing
+ - Remember the idea behind <span style="color:red;">hypothesis testing</span>: we want to formulate a null hypothesis $H_0$ that usually represents a feature about the data we would like to "reject". 
+ 
+<p align="center">
+  <img width="350" height="460" src="reject_null.jpeg">
+</p>  
+ 
+ - Typically null is set in the form of a “no effect” hypothesis, because we want some positive results. Essentially, it's a statistical version of the *proof by contradiction*. For ATE, null can be written as $H_0: E[Y_{1i} - Y_{0i}]=0$, of no average treatment effect.
+ 
+ - The key component of hypothesis testing is that when we assume the null hypothesis is true, it is usually straightforward to derive the distribution of the data (and statistic of it): **we imagine a "<span style="color:red;">null distribution</span>," a sampling distribution of some statistic induced by the assumption that the null hypothesis is true.** Once we know the distribution of some statistic, we can compare that statistic in the observed data to see how likely or unlikely that observation was. And we take this as evidence for or against the null hypothesis. Remember that we never prove the alternative hypothesis is true: we only show that "it is very unlikely that the null hypothesis is true."
+
+
+### RI: Sharp null and randomization/reference/null distribution
+ - Recall that the conventional test for ATE, the t-test relies on some (asymptotic) *approximation*: we expect that the sampling distribution of test statistic would look like t-distribution because--1) t converges to the normal in large sample so the CLT will save us, or 2) t can even account for estimation uncertainty in small sample by allowing more extreme values at both ends of normal. The two-sample t-test with unequal variances is used: $$t = \frac{\hat{\tau}_{ATE}}{\sqrt{\frac{\hat{\sigma}^2_{Y_i|D_i=1}}{n_1} +  \frac{\hat{\sigma}^2_{Y_i|D_i=0}}{n_0}}},$$ where $n_1$ and $n_0$ are the number of treated units and control units. From basic statistical theory, we know that $t_n \overset{d}{\rightarrow} N(0,1)$, so we can use it when sample size is large. 
+ 
+ 
+ - In contrast, randomization inference assumes almost nothing. It allows us to make distribution-free inferences (e.g., reliance on normality, etc), which allows us to deal with samll sample size. It exploits the randomness of treatment randomization: given data, "randomness" is induced only by the very physical act of random treatment assignment, which is known to researcher who "designed" it. Thus, we don't have to rely on "large" sample approximation, which motivates the use of RI.
+ 
+ - Instead of conventional no average effect null, RI poses sharp null hypothesis. <span style="color:red;">Sharp null</span> typically implies no effect for every unit. Thus, **under such a sharp null, both potential outcomes are known for each unit--being either directly observed or imputed through the sharp null ($H_0: Y_{0i}-Y_{1i}=0$, so $Y_{0i}=Y_{1i}$).** That's the key idea of RI. Of course, "no effect" sharp null is one special case: we can choose any sharp null such as an additive effect of size 1 like $H_0: \tau_i=1$. The general expression would be $H_0: \tau_i = \tau_0$ for a certain fixed value $\tau_0$. 
+ 
+ - RI is conducted as follows. Under the specified sharp null, we can fill in all potential outcomes. With those sharp null potential outcomes, we would reshuffle the treatment assignment in certain ways, and compute the test statistic (e.g., DiM). That is, the sampling distribution of the test statistic under sharp null (i.e., randomization distribution) is obtained by simulating all possible random assignments (when the number of possible assignments is too large, we approximate by a large random sample of possible assignments). Then we make inference: e.g., compare the observed test-statistic to the randomization distribution and judge how “extreme” it is (hypothesis test with $p$-value); calculate the standard deviation of the reference distribution (standard error); construct RI confidence intervals.
+ 
+
+### RI with samll data: Fisher's exact test
+ - Randomization inference gives exact p-values when all possible random assignments can be simulated--"exact" because there are no approximations based on assumptions about the shape of the sampling distribution, and **we can get the randomization distribution exactly**. The procedure to get randomization distribution is as follows:
+ 
+  0) Specify our sharp null hypothesis: $H_0: \tau_i=\tau_0$, where $\tau_0$ is any constant. We typically set $\tau_0=0$.
+  1) Fill in missing potential outcomes under the sharp null: replace all the unobserved potential outcomes with revealed outcome $\pm \tau_0$, where the sharp null hypothesis is $\tau_i=\tau_0$. For example, if sharp null is $\tau_0=0$ (no individual-level treatment effect), then $Y_{di}=Y_{i},$ where $D_i\ \in \{0,1\}$.
+  2) Obtain every possible treatment assignment vector $\omega \in \Omega$, by the permutation of original treatment assignment vector.
+  3) Calculate the test statistic under each $\omega$ (don't forget to make each assignment "turn on" the observed outcome). In our case, compute the DiM estimates.
+  4) Repeat the step 3 for all possible treatment assignment to get the reference distribution.
+  
+```{r}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(ri)
+# Data from Table 2-1, Gerber and Green, "Field Experiments" (2012)
+tiny_data <- tibble(i = 1:7, #unit index
+                      Y0 = c(10, 15, 20, 20, 10, 15, 15),#untreated potential outcomes
+                      Y1 = c(15, 15, 30, 15, 20, 15, 30), #treated potential outcomes
+                      tau = Y1-Y0) %>% #individual treatment effect
+  mutate(D = c(1,0,0,0,0,0,1)) %>% #one possible treatment assignment
+  mutate(Y = if_else(D == 1, Y1, Y0)) #observed outcome: Y = D*Y1 + (1-D)*Y0
+```
+
+```{r, echo=FALSE}
+tiny_data %>%  #science table
+  kable(booktabs = T, digits=3, align = rep('c', 6),
+        col.names = c("$i$", "$Y_{0i}$", "$Y_{1i}$", "$\\tau_i$", "$D_i$", "$Y_i$")) %>% 
+  kable_styling(full_width = F, position = "center", font_size = 15) %>%
+  column_spec(2, color = ifelse(tiny_data[,"D"]==1, "lightgrey", "black")) %>% 
+  column_spec(3, color = ifelse(tiny_data[,"D"]==0, "lightgrey", "black")) %>% 
+  column_spec(4, color = "lightgrey") %>% 
+  add_footnote("counterfactual values are unobserved (grey-colored)")
+```
+
+```{r}
+#observed treatment assignment
+tiny_data$D #let's call it `\omega_obs`
+
+#observed ate estimate
+obs_dim <- tiny_data %>% summarize(estimate = mean(Y[D==1]) - mean(Y[D==0])) %>% pull(estimate)
+obs_dim #so it's observed test statistic given `\omega_obs`
+```
+
+ - One coding tip: make your own functions for the *repeated* part of a given task, not for the part implemented only once. In our procedure, which part is repeated? The potential outcomes are *fixed* under our specified sharp null hypothesis. [The treatment assignment is assigned, then observed outcomes is created according to that. We compute our test-statistic, DiM]. Then repeat.
+
+```{r}
+#fix potential outcomes implied by sharp null tau_i=tau_0
+tau_0 <- 0 #sharp null hypothesis: tau_i=tau_0=0, no individual-level treatment effect
+
+#1.fill in potential outcomes under sharp null
+tiny_data <- tiny_data %>%
+  mutate(Y0_sn = Y, Y1_sn = Y) %>% #start with observed Y
+  mutate(Y0_sn = ifelse(D==1, Y1_sn - tau_0, Y0_sn), #if treated unit, assign Y1-tau_0 to Y0_sn
+         Y1_sn = ifelse(D==0, Y0_sn + tau_0, Y1_sn)) #if untreated unit, assign Y0+tau_0 to Y1_sn
+```
+
+We'll use complete randomization: exactly 2 units are treated (no simple random assignment!). The probability of receiving treatment for each unit is $\Pr(D_i)=2/7$.
+
+$\Omega$: since we choose 2 treated units from 7, there're 21 possible random assignments (${7 \choose 2}=21$).
+
+```{r}
+#get Omega
+Omega <- combn(length(tiny_data$D), sum(tiny_data$D), tabulate, nbins=length(tiny_data$D)) %>% 
+  as_tibble()
+Omega #we can see that 6th is observed 
+
+#make a function for exact reference distribution -- note that there's no potential outcome part
+ri_exact <-function(data, permutations, c){
+  data %>% 
+    #2.choose c-th possible assignment
+    mutate(D_sim = permutations[, c]) %>%
+    mutate(Y_sim = ifelse(D==1, Y1_sn, Y0_sn)) %>% #update outcomes by c-th assignment
+    #3.compute test statistic
+    summarize(dim = mean(Y_sim[D_sim==1]) - mean(Y_sim[D_sim==0])) %>% pull()
+}
+
+#exact randomization/reference/permutation dist (exact sampling dist of DiM under sharp null)
+exact_dist <- map_dbl(1:ncol(Omega), function(c) ri_exact(tiny_data, Omega, c))
+exact_dist
+```
+
+  - We've got the randomization distribution of DiM. Now make inference: hypothesis test. (Fisher) exact p-value is defined as $$p_{\text{exact}} \equiv \Pr(|\hat{\theta}(\omega)| \geq |\hat{\theta}_{\text{obs}}|),$$ where $\hat{\theta}(\omega)$ is our test statistic as a function of each possible treatment assignment $\omega$. We reject the null hypothesis ($\tau_i=0$ for  all $i$) if $p \leq 0.05$, for instance.
+
+```{r, echo=FALSE}
+bind_cols(1:21, t(Omega), exact_dist) %>% 
+  kable(booktabs = T, align = rep('c', 8),
+        col.names=c("$\\omega$", "$D_1$", "$D_2$", "$D_3$", "$D_4$", 
+                    "$D_5$", "$D_6$", "$D_7$", "$DiM$"), escape = FALSE) %>% 
+  kable_styling(full_width = F, position = "center", font_size = 15) %>%
+  column_spec(1, border_right = T) %>% row_spec(6, bold = TRUE) %>% 
+  add_footnote("observed values in boldface")
+```
+
+```{r}
+#exact p-value
+mean(exact_dist >= obs_dim) #one-tailed test used to calculate p-value
+exact_p <- mean(abs(exact_dist) >= abs(obs_dim)) #two-tailed test
+exact_p
+
+#exact 95% Confidence Intervals
+quantile(exact_dist, c(0.025, 0.975))
+```
+
+```{r, echo=FALSE, fig.align='center'}
+#null distribution is totally different from t-distribution as sample size is too small (N=7)
+ggplot(tibble(est=exact_dist), aes(x=est)) +
+  geom_histogram(aes(y=..density..), binwidth=.5, alpha=.7) +
+  stat_function(fun = dt, args = list(df = 7-1), linetype="dashed", col="blue") + #overlay t-dist
+  geom_vline(xintercept = obs_dim, col="red") + #observed difference-in-means
+  geom_vline(xintercept = -obs_dim, col="red") + #-observed difference-in-means
+  annotate(geom="text", x=6, y=.55, size=4, label="How extreme observed value is if this dist is true?") +
+  annotate(geom="text", x=8.5, y=.5, size=4, label=paste0("Exact p-value:", round(exact_p, 3))) +
+  annotate(geom="text", x=8.5, y=.45, size=4,
+           label=expression(paste("Pr(|", hat(theta), "(", omega, ")|", ">=6.5)"))) +
+  annotate(geom="text", x=2, y=.3, size=3.5, label=paste0("t-dist, df=7")) +
+  labs(title="Null Distribution for DiM", x=("Estimate")) + 
+  theme_minimal()
+```
+
+What if we used two-sample t-test with unequal variance? 
+
+```{r}
+t.test(tiny_data$Y ~ tiny_data$D, alternative = "two.sided",
+       mu=0, paired = FALSE, var.equal = FALSE)
+```
+  
+Dramatically different! Here the t-approximation works terrible because 1) the number of observations is too small ($N=7$) and 2) the distribution of estimates is not normal (Think about the contrast between $X_1 \sim N(5, 2)$ and $X_2 \sim exp(\lambda=1)$! The t confidence intervals for $X_1$ drawn from normal worked well, i.e., achieve target coverage rate 95\%, even with small sample size, whereas $X_2$ drawn from exponential did not.).
+
+
+### RI with larger data
+  - The randomization inference can be conducted in large sample. The key idea is the same as the exact test: **under the sharp null, we can fill in all potential outcomes**. Since the number of possible treatment assignment is unfathomable (${n \choose n_1}$, so $\Omega$ is too large when $n$ is large) exact computation (of sampling distribution, of p-value, of CIs, etc.) is almost impossbile. So we rely on Monte Carlo approximation--just conduct simulation many times--to get the sampling distribution of chosen test statistic. The following procedure is thus easier than "exact" computation.
+  
+  0) Specify our sharp null hypothesis.
+  1) Fill in missing potential outcomes under the sharp null: replace all the unobserved potential outcomes with revealed outcome $\pm \tau_0$, where the sharp null hypothesis is $\tau_i=\tau_0$. For example, if sharp null is $\tau_0=0$ (no individual-level treatment effect), then $Y_{di}=Y_{i},$ where $D_i\ \in \{0,1\}$.
+  2) Sample another assignment vector $\omega_i$ according to the original randomization procedure: simple random assignment or reshuffle the treatment vector (complete randomization case). Also update observed outcomes $Y_i$ according to simulated assignment.
+  3) Calculate the test statistic. In our case, compute the DiM estimates.
+  4) Repeat the steps 2-3 many times to get the reference distribution. The approximation would be arbitrarily accurate as the number of draws increases.
+  
+  - If assumptions of theoretical approximations like t-test is proper, the difference between conventional $p$-values and RI $p$-values may be negligible (when randomization is simple, outcome is similar to normal, and the sample is large enough). But when the randomization procedure is complicated (e.g., some combinations of complicated blocking and clustering), sample is small, or outcome is too skewed, RI is a good alternative to sidestep the difficulty in evaluating uncertainty engaged in complicated sampling/randomization procedure.
+  
+  - Now let's play with R code.
+```{r}
+set.seed(1234)
+#creat a randomized experiment dataset
+n <- 500
+large_sample <- tibble(i = 1:n,
+                       Y0 = rnorm(n),
+                       Y1 = Y0 + rnorm(n, .2, .05), #add noise to treatment effect of size .2
+                       tau = Y1-Y0) %>%
+  #notice that randomization procedure is simple random assignment, not complete randomization
+  mutate(D = sample(c(0, 1), n, replace = TRUE, prob = c(.5, .5))) %>%
+  mutate(Y = if_else(D==1, Y1, Y0))
+```
+
+```{r, echo=FALSE}
+large_sample[1:10,] %>%  #display first 10 units only
+  kable(booktabs = T, digits=3, align = rep('c', 6),
+        col.names = c("$i$", "$Y_{0i}$", "$Y_{1i}$", "$\\tau_i$", "$D_i$", "$Y_i$")) %>% 
+  kable_styling(full_width = F, position = "center", font_size = 15) %>%
+  column_spec(2, color = ifelse(large_sample[1:10,"D"]==1, "lightgrey", "black")) %>% 
+  column_spec(3, color = ifelse(large_sample[1:10,"D"]==0, "lightgrey", "black")) %>% 
+  column_spec(4, color = "lightgrey") %>% 
+  add_footnote("counterfactual values are unobserved (grey-colored)")
+```
+
+```{r, fig.align='center'}
+## Monte Carlo approximation for randomization inference
+#observed ate estimate
+obs_dim <- large_sample %>% summarize(estimate = mean(Y[D==1]) - mean(Y[D==0])) %>% pull(estimate)
+obs_dim
+
+#1: Fill in missing potential outcomes under the sharp null
+tau_0 <- 0
+large_sample <- large_sample %>% 
+  mutate(Y0_sn = Y, Y1_sn = Y) %>%
+  mutate(Y0_sn = ifelse(D==1, Y1_sn - tau_0, Y0_sn),
+         Y1_sn = ifelse(D==0, Y0_sn + tau_0, Y1_sn))
+
+#make a ri_mc function
+ri_mc <- function(data){ #sharp null hypothesis: tau_i=tau_0 (usually tau_0=0)
+  data %>%
+    #2.simple random assignment (same as original procedure)
+    mutate(D_sim = sample(c(0, 1), n(), replace = TRUE)) %>% 
+    #mutate(D_sim = sample(data$D)) %>% #had procedure been complete randomization: just reshuffle D
+    mutate(Y_sim = ifelse(D==1, Y1_sn, Y0_sn)) %>%  #update outcomes under new assignment
+    #3.compute test statistic   
+    summarize(dim = mean(Y_sim[D_sim==1]) - mean(Y_sim[D_sim==0])) %>% pull
+}
+ri_mc(large_sample)
+
+#get reference distribution
+ref_dist <- tibble(est = replicate(1000, ri_mc(large_sample), simplify = TRUE))
+
+#RI p-value (2-sided)
+exact_p <- mean(abs(ref_dist) >= abs(obs_dim)) #two-tailed test
+exact_p
+
+#plot
+ggplot(ref_dist, aes(x=est)) +
+  geom_histogram(aes(y=..density..), alpha=.7) +
+  geom_vline(xintercept = obs_dim, col="red") + #observed difference-in-means
+  geom_vline(xintercept = -obs_dim, col="red") + #-observed difference-in-means
+  labs(title="Null Distribution for DiM", x=("Estimate")) + 
+  theme_minimal()
+```
+
+ <br>
+
+### Limitations
+ - 1 Sharp null hypothesis may not be interesting since it assumes constant (usually zero) treatment effect for all units.
+ - 2 Finite-sample inference rather than population inference (randomization distribution is over "repeated randomization" of treatment assignment rather than "repeated sampling" of data from population): recall that the sole source of randomness is treatment assignments, not sampled units and their potential outcomes. Thus, we can't talk about the external validity of conclusion based on RI.
+
+
+
+### Quick review quiz
+> Q) Say we are analyzing the effect of a treatment in a randomized experiment and uses a two- sample t-test with unequal variances to reject the null hypothesis of zero ATE. We could have tested the same null hypothesis with a randomization inference like Fisher’s exact test to avoid any large sample approximations. True or false?
+
+ <br>
+ <br>
+
+ - False. A randomization test will test the sharp null of no effect ($\tau_i=0$) instead of the zero average treatment effect ($\E[\tau_i]=0$). The later is obviously a weaker hypothesis, because the ATE may be zero even when for some units the treatment effect is positive, as long as for some others the effect is negative.
+  
+  
+  
+  
+  

@@ -1,0 +1,130 @@
+---
+title: '200C Section 7: Weighting'
+author: 'Soonhong Cho'
+date: "May 13, 2022"
+output:
+  html_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+```
+\newcommand{\y}{\mathbf{y}}
+\newcommand{\X}{\mathbf{X}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\mathbb{V}}
+\newcommand{\independent}{\perp\!\!\!\perp}
+
+This document is based on Imbens and Rubin, *Causal inference in statistics, social, and biomedical sciences* (2015), and the lecture slides of Kosuke Imai and Brandon Stewart.
+
+
+## Motivation: Propensity score as a one-dimensional summary of covariates
+***
+
+ - The curse of dimensionality makes it difficult to work in a situation where there are many (pretreatment) covariates to condition on. 
+ 
+ - Let's see what's the problem with a simple simulation: 1) create a dataset with 500 observations, in which a treatment $D_i$ is allocated so that the first 250 units in the data are treated and the rest are control, 2) draw each of the 20 covariates independently from the multinomial distribution with 4 categories, with probabilities $p = (0.1,0.2,0.3,0.4)$ for the treatment group and $p = (0.25,0.25,0.25,0.25)$ for the control group, then 3) match each treated unit to an untreated unit with exactly the same first covariate $x_{i1}$, with replacement, while storing the proportion of treated units matched. We'll repeat this with increasing dimensionality up to 20, and also with increasing the size of control units from 400 to 2,000 to 10,000.
+
+```{r, echo=FALSE}
+library(tidyverse)
+library(Matching)
+## dataset with 500 obs and 20 covariates
+n<-500; n_t<-100; n_c<-n-n_t; p<-20 #100 treated and 400 control
+X <- rbind(replicate(p, sample(1:4, size=n_t, replace=TRUE, #treat
+                               prob=c(.1, .2, .3, .4))),
+           replicate(p, sample(1:4, size=n_c, replace=TRUE))) #control (equal probabilities)
+X <- cbind(X, treat=rep(c(1,0), c(n_t, n_c))) #treatment indicator
+
+## How would the plot change with increasing control units, with fixing treat units?
+X_2 <- rbind(X, cbind(replicate(p, sample(1:4, size=2000*20-500,
+                                          replace=TRUE)), rep(0, 2000)))
+X_3 <- rbind(X, cbind(replicate(p, sample(1:4, size=10000*20-500,
+                                          replace=TRUE)), rep(0, 10000)))
+
+## make a helper function to get proportion of exact matches
+prop_matched <- function(data){
+  match_res <- Match(Tr = data[, "treat"], X = data[, 1:(ncol(data)-1)],
+                     M = 1, exact = TRUE, replace = TRUE, estimand = "ATT")
+  #if no exact match we get FALSE, so assign 0 in that case
+  matched <- ifelse(is.logical(match_res)==TRUE, 0, match_res$nobs - match_res$ndrops)
+  return(matched/nrow(data))
+}
+
+plot_prop_matched <- function(X){
+  map_dbl(1:(ncol(X)-1), #without treat indicator column
+                            function(d){ prop_matched(X[, c(1:d, 21)]) })
+}
+
+plot_df <- tibble(dim=1:20, x1 = plot_prop_matched(X),
+                  x2 = plot_prop_matched(X_2), 
+                  x3 = plot_prop_matched(X_3)) %>% 
+  gather(size, prop, -dim)
+
+ggplot(plot_df, aes(x=dim, y=prop, col=size)) +
+  geom_line() +
+  labs(title="Curse of Dimensionality in Matching, with Varying Size",
+       x="Dimensions (# of variables)", y="Proportion of Exact Matches",
+       col="Control Group Size") +
+  scale_color_hue(labels=c("400", "2,000", "10,000")) +
+  theme_bw() + theme(legend.position=c(.8,.85))
+```
+
+It seems that the “curse” is really a curse for matching. This plot shows the performance of exact matching does not get better that much even with many more control units to be matched on, and the improvement in performance drops quickly. It's because the comparability of matches is getting worse as more covariates are matched on (hard to find "close" pairs). We might want to balance as many observed variables as possible between treatment conditions, but matching will perform poorly with more covariates.
+
+
+ <br>
+ 
+## Propensity score as balancing score
+***
+- As we've seen, matching is hard when $X$ has has many dimensions (too many covariates).
+
+- One alternative is using (estimated) **<span style="color:red;">propensity score</span>**, as a one-dimensional summary: $$ \pi(\mathbf{X}_i = \Pr(D_i=1 \mid \mathbf{X}_i)),$$ which is just the **probability of receiving the treatment**.
+
+- Is it justifiable to use just one number as an approximation for multiple covariates (dimension reduction)? Yes, since propensity score is a "balancing score": conditioning on propensity score, the treatment is independent of covariates: $$D_i \independent \mathbf{X}_i | \pi(\mathbf{X}_i),$$ which reads that among those units with the same propensity score, covariates $\mathbf{X}_i$ is identically distributed between the treated and untreated ($f(X_i|D_i=1, \pi(\mathbf{X}_i)) = f(X_i|D_i=0, \pi(\mathbf{X}_i))$).
+
+- If SOO ($\{ Y_{0i}, Y_{1i} \} \independent D_i|X_i=x$) holds, then conditional ignorability also holds given the propensity score: $\{ Y_{0i}, Y_{1i} \} \independent D_i|\pi(\mathbf{X}_i)$. Stratifying on propensity score is the same as stratifying on the full covraties $\mathbf{X}_i$, in expectation.
+
+
+ <br>
+ 
+## Estimating the propensity score
+***
+
+- We don’t know the true propensity score since treatment assignment mechanism is unknown in observational setting. Thus, we usually run a parametric model to estimate the propensity score (we could easily calculate the propensity scores using the `glm` function in `R`).
+
+- Since the propensity score is (conditional) "probability," it's bounded by 0 and 1. So we need to use some nonlinear models such as probit, logit, etc., instead of linear regression (See Pset 3 Q4 d). At this point, we’re interested in precisely estimating this quantity and we don’t care about interpreting our model at all.
+
+ <br>
+ 
+## Weighting with the Propensity Score
+***
+
+- Recall that the motivation for matching methods was to improve covariate balance between treatment groups. But matching methods have some limitations: (1) inefficient, since it may throw away data (non-matched control units), (2) ineffective, since it may not be able to balance covariates in expectation (if control pool is bad for matching). But we can use all the data we have with balancing covariates by reweighting the data in certain ways!
+
+- Inverse Probability-of-Treatment Weighting (IPW): IPW relies on the fact that we can estimate how likely a unit with some characteristics $\mathbf{X}$ would be to get treatment (so, "propensity" to get treated). Then the idea is simple: by reweighting units in a certain way, we will make a pseudo-dataset such that the covariates are balanced. Units that are “weird” (they got treatment when we would have expected them to get control, or vice versa) are weighted up, while units that got the expected result are weighted down – so the final weighted quantity will be closer to balanced. 
+
+- Here is the simple IPW formula: $$IPW_i = \frac{1}{\Pr(D_i|X_i)} = \frac{1}{D_i \hat{\pi}_i + (1-D_i)(1-\hat{\pi}_i)}.$$ Think through this equation. If a unit got treatment, then what is its weight? What about if a unit got control? We know that $\hat{\pi}_i$ is in the range $[0, 1]$. What if $\hat{\pi}_i$ is very close to 1? What if it is very close to 0? How will this affect the IPW?
+
+
+#### Reducing weight variation
+- IPW estimators are consistent but biased in small samples, and this bias is severe when some weights are extremely large or small. 
+
+- A simple workaround is trim units with extreme weights---discard units with too extreme weights (but trimming changes the estimand to a weird quantity that is causal yet difficult to interpret).
+
+- Another option is to use "stabilized" IPW. which normalizes the weights according to the population distribution: $$SIPW_i = \frac{\Pr(D_i)}{\Pr(D_i|X_i)} = \frac{D_i \Pr(D_i=1) + (1-D_i)(1- \Pr(D_i))}{D_i \hat{\pi}_i + (1-D_i)(1-\hat{\pi}_i)}.$$
+
+
+ <br>
+ 
+#### Summary
+
+- Propensity scores play an important role in causal inference as a form of dimension reduction and a conceptual tool for thinking about selection into treatment.
+
+- In most basic selection on observables settings the goal is to use them to achieve balance.
+
+- Code example: See our Matching example code (Annan and Blattman 2010), "Propensity Scores" section.
+
+  
+  
+  
