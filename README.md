@@ -4,6 +4,7 @@ Reference materials and tutorials used in TA sections for the PhD-level Causal I
 
 Most of them are html files, so here are the links using [GitHub & BitBucket HTML Preview](https://github.com/htmlpreview/htmlpreview.github.com):
  * [1_prob_review](https://htmlpreview.github.io/?https://github.com/soonhong-cho/PS200C-Causal-Inference-Section-Notes/blob/main/1_Prob_review/1_prob_review.html)
+ * [BasicMatrixAlgebra_review](https://github.com/soonhong-cho/PS200C-Causal-Inference-Section-Notes/blob/main/1_Prob_review/BasicMatrixAlgebra_review.pdf)
  * [2_po_experiment](https://htmlpreview.github.io/?https://github.com/soonhong-cho/PS200C-Causal-Inference-Section-Notes/blob/main/2_PO_InferenceBasic/2_po_experiment.html)
  * [2b_Inference_basics](https://htmlpreview.github.io/?https://github.com/soonhong-cho/PS200C-Causal-Inference-Section-Notes/blob/main/2_PO_InferenceBasic/2b_Inference_basics.html)
  * [3_randomization_inference](https://htmlpreview.github.io/?https://github.com/soonhong-cho/PS200C-Causal-Inference-Section-Notes/blob/main/3_RI/3_randomization_inference.html)
