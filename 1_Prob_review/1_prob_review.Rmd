@@ -1,0 +1,513 @@
+---
+title: "200C Section W1: Probability, Random Variables, and Matrix Algebra"
+author: "Soonhong Cho"
+date: "April 1, 2022"
+output:
+  html_document: default
+header-includes: 
+  \usepackage{amsmath}
+---
+
+This document is derived from past course notes by Luke Sonnet, Aaron Rudkin, Ciara Sterbenz, MIT's 17.800 course (Teppei Yamamoto, Jens Hainmueller), Aronow and Miller's textbook, and past notes from Chad Hazlett.
+
+## Basic Probability Theory
+
+We have a <span style="color:red;">sample space</span> $\Omega = \{A, B, \dots\}$. A sample space contains <span style="color:red;">events</span>, which are outcomes of a data generating process such as an experiment or a process in nature. Coin tosses are a process that lead to one of two events: $\Omega = \{H, T\}$. A <span style="color:red;">probability function</span> assigns a probability to an event. One popular notation for probability functions, which we use in this course, has us writing $p(A)$ to describe the probability of the event $A$.
+
+The <span style="color:red;">Kolmogorov Axioms</span> are a set of useful assumptions to make about probability. They are the framework we use. They consist of three simple rules:
+
+1. <span style="color:red;">Non-negativity</span>: $p(A) \geq 0 \, \forall A$. Any event has a non-negative probability.
+2. <span style="color:red;">Normalization to 1</span>: $p(\Omega) = 1$. The probability of all mutually exclusive events in a sample space must add up to 1. Intuitively, it is certain that *some* outcome will occur. A <span style="color:red;">partition</span> describes a way of breaking the sample space into parts such that the parts satisfy this requirement.
+3. <span style="color:red;">Additivity</span>: $p(A \cup B) = p(A) + p(B)$ if events $A$ and $B$ are mutually exclusive (disjoint: $p(A \cap B)=0$).
+
+With just these three assumptions, we are able to get a lot of leverage on random variables, distributions, and many of the data generating processes we take for granted when doing empirical work.
+
+
+## Random Variables
+
+A <span style="color:red;">random variable</span>, $X$, is a function that maps the events of the sample space to numeric outcomes -- so, for instance, we can imagine the random variable representing the sample space of a coin toss as:
+
+$$
+  X = \begin{cases}
+  0 \;\; \text{ if we get tails} \\
+  1 \;\; \text{ if we get heads}
+  \end{cases}
+$$
+
+We often see this written in formats like $X : \Omega \rightarrow \mathbb{R}$, meaning that every event in $\Omega$ is mapped to a real number ($\mathbb{R}$).
+
+In addition to mapping an event to a numeric outcome, a random variable also includes a <span style="color:red;">probability mass function</span> (or <span style="color:red;">probability density function</span> for continuous variables) which attachs a probability to each possible outcome. In a fair coin toss, the PMF looks like:
+
+$$
+  p(x) = \begin{cases}
+  1/2 \;\; \text{ if } x = 0 \\
+  1/2 \;\; \text{ if } x = 1
+  \end{cases}
+$$
+
+Other authors sometimes write the probability function as $f_x(x)$. We use the $p(x)$ convention here.
+
+One special type of random variable is a <span style="color:red;">degenerate random variable</span> -- this is a random variable that has only one possible outcome, which it takes with probability 1. A degenerate random variable has probability "mass" at only one point. A constant number is thus a degenerate random variable, and when we write an expression like $X = 1$, we are describing a degenerate random variable.
+
+We can verify that a random variable is well defined if the probability mass function sums to 1 (thus following the Kolmogorov Axioms). Mathematically, we can write this as:
+
+$$
+  \sum_x p(X = x) = 1
+$$
+
+Recall that $\sum$ refers to the summation function; here we take each possible value of $X$, and add together the probability that our random variable takes that value. Variables for which we can list all the possible values of $X$ (because we can count them, and they are all mapped to specific values, like in the case of the coin toss) are call <span style="color:red;">discrete</span> random variables. The possible values of x are called <span style="color:red;">realizations</span>.
+
+A <span style="color:red;">continuous</span> random variable has a continuous range of realizations. Recall that this means it has a <span style="color:red;">probability density function</span>. Imagine I am trying to describe the the time that students arrive for section; it is not possible to count every possible time, because a student could arrive at any microsecond of any second. 
+
+Because there are an infinite number of possible realizations, the probability that any one realization is true is 0. This may seem strange at first, but let's consider what would happen if this was not true. We know that there are an infinite number of realizations, we know that probabilities need to sum to exactly 1 -- so any probability above 0 will not work.
+
+A continuous random variable is well defined if the probability density function satisfies the following equality:
+
+$$
+  \int_{-\infty}^{\infty} p(x) \, dx = 1
+$$
+
+Quick calculus review: this $\int$, the integration sign, is a "stretched out S", standing for "sum". So, this roughly means if we check every value from $-\infty$ to $\infty$, adding together the probability at just that value, we end up with a total probability of 1. You should generally be familiar with basic calculus rules for integration and differentiation.
+
+So we know that if we look at the probability density function across the entire <span style="color:red;">support</span>, we will get probability 1, and if we look at it at any one point, we will get probability 0. We are also often interested in extracting a probability for a range of values. Imagine that I believe a student will arrive uniformly for section between 9AM and 9:20AM, and I am interested in knowing how likely it is the student will arrive between 9AM and 9:10AM. I might map these values to a time from 0 to 10 minutes late, and express the function as such:
+
+$$Pr(0 \leq X \leq 10) = \int_{0}^{10} p(x) \, dx$$
+
+Let's describe two canonical continuous random variable distributions. First, the uniform distribution. A uniform random variable is one that is characterized by a minimum and maximum value ($a$ and $b$), with equal probability density on any value inside that range and 0 outside. A uniform random variable is often written $X \sim Unif(a, b)$. The PDF of the uniform distribution is as follows:
+
+$$
+  p(x) = \begin{cases}
+  \frac{1}{b - a} \;\; a \leq x \leq b \\
+  0 \;\; \text{otherwise}
+  \end{cases}
+$$
+
+In our classroom example, we see that $p(x) = \frac{1}{20}$, and the solution to the problem posed above is that a student will arrive within 10 minutes of section starting with $Pr(0 \leq X \leq 10) = 0.5$.
+
+We also commonly work with the normal distribution. A normal distribution is described by its mean and variance, often written $X \sim N(\mu, \sigma^2)$. The PDF of $X$ is:
+
+$$
+p(x) = \frac{1}{\sigma \sqrt{2\pi}} \, e^{-\frac{(x - \mu)^2}{2\sigma^2}}
+$$
+
+This function is brutal to remember and use, but we can use some hints to try to understand where it comes from. The first portion, $\frac{1}{\sigma \sqrt{2 \pi}}$ is a "normalizing constant" -- we use this to make sure that the PDF, when integrated across all values, gives us 1. The second portion, $e^{-\frac{(x - \mu)^2}{2\sigma^2}}$ describes the "shape" of the normal curve -- the tell-tale bell shape. $e$ is a constant (roughly equal to 2.718). 
+
+Consider the quantity $e^x$. Where $x$ is 0, $e^x$ is 1. When $x$ is large and negative, $e^x \rightarrow 0$. Now, let's look at the actual power in the equation: $e^{-\frac{(x - \mu)^2}{2\sigma^2}}$. When $x = \mu$ (when we are looking at the variable at its mean, $\mu$), the exponent term is 0, so the density is very high. As $x$ gets further away from $\mu$, $(x - \mu)^2$ gets bigger, so $-(x - \mu)^2$ gets more and more negative. This portion describes how far out in the "tails" a given x is. The bottom half of the fraction describes how quickly the curve "drops off" as you move away from the mean -- $\sigma^2$ describes the variance of the variable.
+
+Imagine an example where a normal random variable has mean 1 and standard deviation 3, then $\mu = 1$, $\sigma = 3$, $\sigma^2 = 9$, and we can write $X \sim N(1, 9)$, and our PDF is:
+
+$$
+  p(x) = \frac{1}{3 \sqrt{2\pi}} \, e^{-\frac{(x - 1)^2}{18}}
+$$
+
+Here I include a plot that shows both what this Normal distribution SHOULD look like, and what an actual run of drawing 10,000 samples from this distribution does look like:
+
+```{r, echo=FALSE}
+x_sequence = seq(from = -10, to = 10, length.out = 10000)
+x_draws = rnorm(10000, mean = 1, sd = 3)
+plot(x_sequence, dnorm(x_sequence, mean = 1, sd = 3), 
+     type = "l",
+     col="black",
+     main="Normal Distribution Example",
+     xlab="X",
+     ylab="Density")
+lines(density(x_draws), col="red")
+legend(x = c(-9.5, -9.5),
+       y = c(0.12, 0.12),
+       col = c("black", "red"),
+       legend = c("Formula", "Sample Draws"),
+       lty = 1,
+       cex = 0.8)
+```
+
+## Expectations of a Random Variable
+
+One way we describe a random variable is by its <span style="color:red;">expectation</span>. An expectation is a "center of gravity" or "measure of central tendency". This quantity describes a variety of related things -- it describes the mean value that many draws from this random variable will take. It also describes the value we expect an individual draw from this random variable will take. 
+
+For a discrete random variable, the expectation is the sum of every possible realization of $X$, multiplied by the probability of each realization from the PMF:
+
+$$
+\mathbb{E}[X] = \sum_{x} x \, p(x)
+$$
+The expectation of a random variable need not be a value the random variable actually can take. For example, imagine our fair coin random variable where the flip results in either a 0 or a 1: the expectation of the random variable will be 0.5. We can see this by doing the sum function manually:
+
+$$
+\begin{aligned}
+  \mathbb{E}[X_{coin}] &= 0 \times p(T) + 1 \times p(H) \\
+  &= 0 \times 0.5 + 1 \times 0.5 \\
+  &= 0.5
+\end{aligned}
+$$
+
+Or, for a fair, six-sided dice:
+
+$$
+\begin{aligned}
+  \mathbb{E}[X_{dice}] &= 1 \times p(1) + 2 \times p(2) + 3 \times p(3) + \, \dots \\
+  &= 1 \times \frac{1}{6} + 2 \times \frac{1}{6} + 3 \times \frac{1}{6} + \, \dots \\
+  &= 3.5
+\end{aligned}
+$$
+
+Knowing that an expectation just consists of realizations (the values a variable can take) and probabilities (how likely it is to take them), we can derive a number of useful algebraic concepts, some of which you may remember from 200A.
+
+ - The expectation of a random variable is easily multiplied by a scalar number ($a$):
+
+$$
+\begin{aligned}
+  \mathbb{E}[a X] &= \sum_x a \, x \, p(x) \\
+  &= a \sum_x x \, p(x) \\
+  &= a \mathbb{E}[X]
+\end{aligned}
+$$
+
+ - Expectations of multiple random variables are additive and subtractive (<span style="color:red;">linearity of expectation</span>):
+$$
+  \mathbb{E}[X + Y] = \mathbb{E}[X] + \mathbb{E}[Y] \\
+  \mathbb{E}[X - Y] = \mathbb{E}[X] - \mathbb{E}[Y]
+$$
+
+ - With a continuous random variable, the expression is almost identical:
+
+$$
+  \mathbb{E}[X] = \int x \, p(x) \, dx
+$$
+
+Again, in general we should think of $\int$ as the continuous version of $\sum$, used for summing up little bits into a whole.
+
+ - The expectation of a random variable is equivalent to its mean or "average". An expectation is also sometimes called the first <span style="color:red;">moment</span>. A "moment" is a very specific function of a random variable. A moment is a weighted average of the realizations of a random variable, raised to the power of the order of the moment, where the weights are the probability of the random variable. So:
+
+$$
+  \text{Moment}_i = \mathbb{E}[X^i] = \sum_x x^i \, p(x)
+$$
+
+ - The variance of a random variable is a second centered moment (centered here means subtracting the mean):
+
+$$
+  \text{Var}[X] = \mathbb{E}[(X - E[X])^2] = \sum_x (x - \mu)^2 \, p(x)
+$$
+
+You may learn more about higher order moments in subsequent classes, but the important thing to understand is that moments are functions which characterize the "shape", "location", and "skew" of a random variable. Note that the rules about the algebra of expectations do not apply in exactly the same way to higher order moments -- do not assume, for instance, that $\text{Var}[a X] = a \text{Var}[X]$.
+
+## Expectations of Variables, Expectations of Draws
+
+Expectations are a property of both the random variable (function translating events into numeric values, and assigning probability to those values) and individual draws from that random variable.
+
+Consider a random variable $X$ that describes a dice roll. Imagine we roll a dice five times, generating the numbers $X_1, X_2, X_3, X_4, X_5$. First, we have the quantity $\mathbb{E}[X]$: this describes the value we would expect, on average, each time we roll the dice. This is equivalent, mathematically, to the average value we would expect across many draws. Each draw also has an expectation: $\mathbb{E}[X_1] = \mathbb{E}[X_2] = \mathbb{E}[X_3] = \dots = \mathbb{E}[X]$. Each time we draw, the draw has the same expectation as the random variable itself. We call these draws $X_1$ through $X_5$ <span style="color:red;">i.i.d.</span>: independent and identically distributed. Knowing what we rolled the first roll tells us nothing about subsequent rolls, and each roll has the same probability mass function.
+
+Note that the expected value of the draw is different than the realized value of the draw. Once we actually roll the dice and see the value of $X_1$, $X_1$ becomes a constant number. Perhaps we drew a 6, and so $X_1 = 6$. So it is important to separate the expectation, a hypothetical quantity, from the realization, a real quantity.
+
+## Joint and Marginal Distributions
+
+Two random variables, $X$ and $Y$, have a <span style="color:red;">joint probability mass function</span> $p(x, y)$. For each possible combination of values of x and y, some probability is assigned, the sum of these probabilities is 1, no values are negative. Our probability mass function, thus, satisfies this rule:
+
+$$
+\sum_y \sum_x p(x, y) = 1
+$$
+
+Another way to think about this: For each possible value of $Y$, we take that value, and then we look at each possible value of $X$. We're searching over a grid of all possible values of Y and all possible values of X and summing up their probabilities. Observe this plot of a joint density function of $X$ and $Y$ in R:
+
+```{r}
+x = seq(-3, 3, length.out = 50)
+y = seq(-3, 3, length.out = 50)
+density = outer(x, y, function(x, y) { dnorm(x, sd=0.5) * dnorm(y, mean = 2, sd=1.5) })
+persp(x, y, density, phi = 45, theta = 30, lwd=0.3, border="red")
+```
+
+Sometimes we know this distribution $p(x, y)$ and we want to know $p(y)$. We <span style="color:red;">marginalize</span> the probability function. If you look at our 3d perspective plot which looks like shark fin, this is the equivalent of "squishing" the entire $X$ variable (or $Y$ variable), leaving us with:
+
+```{r, echo=FALSE}
+par(mfrow=c(2, 2))
+persp(x, y, density, phi =-15, theta = 90, lwd=0.1, border="red", expand=1.6)
+plot(y, dnorm(y, mean=2, sd=1.5), type="l", main="Marginalized Density of Y",
+     xlab="Y", ylab="Density")
+persp(x, y, density, phi =-15, theta = 0, lwd=0.1, border="red", expand=1.6)
+plot(x, dnorm(x, sd=0.5), type="l", main="Marginalized Density of X",
+     xlab="X", ylab="Density")
+par(mfrow=c(1, 1))
+```
+
+Sometimes we want to obtain $p(y)$ from this joint distribution. This is called <span style="color:red;">marginalizing</span> probability function. Here we are interested in checking how much $Y$ is present across all the $X$s:
+
+$$
+  p(y) = \sum_x p(x, y) \\
+  p(y) = \int_x p(x, y) \, dx
+$$
+
+As simple as that! We marginalize by moving over the possible values of the variable we are "throwing away" and checking the joint distribution at each of those values.
+
+## Conditional Probability
+
+Conditional Probability is useful when we want to use information learned or hypothesized about one variable to tell us about another one. This brings us back to a few fundamental equations from 200A:
+
+$$
+  p(x, y) = p(x | y) \, p(y) = p(y | x) \, p(x)
+$$
+
+In other words, the probability of events $x$ and $y$ happening is the same as either: a) the probability of event $y$ happening, and then conditional on that, $x$ also happening or b) the probability of event $x$ happening, and then conditional on that, $y$ also happening.
+
+This can be re-arranged to give us a simple formula for conditional probability:
+
+$$
+p(y | x) = \frac{p(x, y)}{p(x)} \\
+p(x | y)= \frac{p(x, y)}{p(y)}
+$$
+
+And also <span style="color:red;">Bayes' Law</span>, which is amazing:
+$$p(x | y) = \frac{p(y | x) \, p(x)}{p(y)}$$
+From $p(x, y)=p(x|y)p(y)=p(y|x)p(x)$, solving for $p(x|y)$ gives the Bayes' rule formula. As you can see, we can use it when we are interested in "flipping  the direction" of the conditional probability!
+
+
+## Joint, Marginal, and Conditional Probabilities
+* <span style="color:purple;">Related to Pset1 Problem 1</span>
+
+You need to know how to get from one to another, back and forth, using the formulas, the law of total probability, and the Bayes' rule. Practice with Problem 1 in the Pset 1.
+
+```{r}
+#joint distribution of X and Y
+p <- matrix(c(.1, .2, .3, .4), ncol=2, byrow = TRUE)
+colnames(p) <- c("Y=0", "Y=1")
+rownames(p) <- c("X=0", "X=1")
+p
+
+#sum
+sum(p)
+
+#marginal probabilities
+p_x <- apply(p, 1, sum) #marginal probabilities for X 
+p_y <- apply(p, 2, sum) #marginal probabilities for Y
+
+#conditional probabilities
+p_y_given_x0 <- c(p[1,1]/p_x[1], p[1,2]/p_x[1])  #conditional probability P(Y=y|X=0)
+p_y_given_x1 <- c(p[2,1]/p_x[2], p[2,2]/p_x[2])  #conditional probability P(Y=y|X=1)
+p_x_given_y0 <- c(p[1,1]/p_y[1], p[2,1]/p_y[1])  #conditional probability P(X=x|Y=0)
+p_x_given_y1 <- c(p[1,2]/p_y[2], p[2,2]/p_y[2])  #conditional probability P(X=x|Y=1)
+
+#law of total probability
+#e.g., p(X=1) = p(X=1|Y=0)p(Y=0) + p(X=1|Y=1)p(Y=1)
+p_x[2] == p_x_given_y0[2]*p_y[1] + p_x_given_y1[2]*p_y[2]
+
+#Bayes' rule
+#e.g., p(X=0|Y=0) = p(Y=0|X=0)p(X=0) / p(Y=0)
+p_x_given_y0[1] ==  (p_y_given_x0[1]*p_x[1] / p_y[1])
+```
+
+
+
+## Conditional Expectation
+Conditional probabilities also give way to conditional expectations:
+
+$$
+  \mathbb{E}[Y | X] = \sum_y y \, p(y | x)
+$$
+It is just  some function of $x$, telling us how the values of $Y$ vary with $x$. You will encounter conditional expectations all the time! The canonical place for it is in regression, which you are (or will be) familiar with.
+
+One extremely useful concept is the <span style="color:red;">Law of Iterated Expectations (LIE)</span>:
+$$\mathbb{E}[Y] = \mathbb{E} \left[ \mathbb{E}[Y|X] \right]$$
+In discrete case:
+$$\mathbb{E}[Y] = \mathbb{E} \left[ \mathbb{E}[Y|X] \right]=\sum_x \mathbb{E}[Y|X=x]p(X=x)$$
+
+Basically, it implies that the unconditional (marginal) expectation can be represented as a weighted average of conditional expectations with the weights being proportional to the probability distribution of the variable being conditioned on.
+
+(Note) Though we use the same term $\mathbb{E}$, the expectation in the LHS is taken w.r.t the marginal distribution of $Y$, the first expectation in the RHS is taken w.r.t the marginal distribution of $X$, and the second expectation in the RHS is taken w.r.t the conditional distribution of $Y$ given $X$ (so, $\mathbb{E}_Y [Y] = \mathbb{E}_X \left[ \mathbb{E}_{Y|X}[Y|X] \right]$). The LIE holds for any two random variables: we need not assume independence of the variables. We will invoke frequently the LIE in proofs.
+
+
+## Independence of Random Variables
+
+If two distributions are <span style="color:red;">independent</span>, then it is the case that $p(x, y) = p(x) \, p(y) \, \forall x, y$. This implies that learning about either $x$ or $y$ tells us nothing about the other, and also:
+
+$$
+\begin{aligned}
+p(y | x) &= \frac{p(x, y)}{p(x)} \\
+&= \frac{p(x) \, p(y)}{p(x)} \\
+&= p(y)
+\end{aligned}
+$$
+
+This also implies $\mathbb{E[X | Y]} = E[X]$ when $X$ and $Y$ are independent (again, because the conditional expectation only affects the conditional probability, and as above we see that the conditional and unconditional probabilities are the same under independence).
+
+Further, this implies that $\mathbb{E}[XY] = \mathbb{E}[X] \, \mathbb{E}[Y]$. In continuous world:
+
+$$
+\begin{aligned}
+  \mathbb{E}[XY] &= \int \int x \, y \, p(x, y) \, dy \, dx \\
+  &= \int \int x \, y \, p(x) \, p(y) \, dy \, dx \\
+  &= \int x \, p(x) \, dx \int y \, p(y) \, dy \\
+  &= \mathbb{E}[X] \, \mathbb{E}[Y]
+\end{aligned}
+$$
+
+## Estimation, Estimands, and Estimators
+
+* Estimand: The quantity of interest whose true value we want to study. It is the goal to be estimated in our statistical analysis (e.g., population mean $\mu$).
+* Estimator: The function/formula/statistic for estimating the estimand from observed data. We can guess systemically the true value of estimand from observed data by using estimator (e.g., sample mean $\bar{X}$).
+* Estimate: The specific numerical values of the estimand calculated by the estimator (e.g., a single number).
+
+We are generally interested in the process of estimation: learning some quantity of interest. In this class, we will first discuss <span style="color:red;">estimands</span> ($\theta$). Estimands are hypothetical quantities we would like to estimate. The estimand is the object of inquiry--it is the precise quantity about which we marshal data to draw an inference. So, the quantity to be estimated must not be defined within a statistical model for estimation--then it would be tautology. I highly recommend this paper: \textcolor{blue}{https://journals.sagepub.com/doi/10.1177/00031224211004187}.
+
+We have already seen an estimand in this class. Suppose we want the ATE (<span style="color:red;">average treatment effect</span>). At this point, we are not interested in figuring out whether the quantity is identified (whether we are able to actually observe this quantity). The estimand for the ATE is:
+
+$$
+  ATE = \mathbb{E}[\tau_i] = \mathbb{E}[Y_{1i} - Y_{0i}]
+$$
+An even more simple estimand is the expectation of a random variable. Suppose we are interested in the expectation of the random variable $H$, which represents the heights of the members of the class. $E[H]$ is an estimand: a quantity we wish to interest.
+
+To actually estimate these quantities, we use an <span style="color:red;">estimator</span>. An estimator is a function that takes observed data, for example i.i.d. draws from a random variable, and returns an estimate of our value of interest. Thus, an estimator is just a sample statistic. We generally denote <span style="color:red;">estimates</span>, the output produced by applying estimator to data, with the hat symbol: $\widehat{\mathbb{E}[H]}$. (Linking "estimand" to observable quantities under assumptions is called "Identification". We'll see many identification results for each strategy.)
+
+Nothing about an estimator requires it to be correct or useful, although in our studies we are generally interested in good estimators. The quality of an estimator is typically evaluated by the <span style="color:red;">bias</span> (if we repeated the process again and again, would we get the answer right on average) and the <span style="color:red;">variance</span> (how much does our estimate vary if we try repeatedly).
+
+- Properties of Estimators: there are three fundamental properties of estimators that guide us to assess how "well" they estimate the true parameter, our estimand.
+
+  1. Unbiasedness: An estimator $\hat{\theta}$ is unbiased for $\theta$ if $\mathbb{E}[\hat{\theta}]=\theta$. The quantity bias is defined as $\mathbb{E}[\hat{\theta}]-\theta$. Unbiasedness means that we can get the right answer (the true value $\theta$), on average.
+
+  2. Efficiency: An estimator $\hat{\theta}_A$ is more efficient than $\hat{\theta}_B$ if it has a lower Mean Squared Error, where MSE is defined as $\text{MSE}=\mathbb{E}[(\hat{\theta}-\theta)^2]=V[\hat{\theta}] + (\mathbb{E}[\hat{\theta}]-\theta)^2)=\text{Variance} + \text{Bias}^2$. (Mean Squared Error: The expected value of the squared difference between the estimates and the true value of estimand. It can be used as a good metric to quantify the precision of an estimator with a consideration on the bias-variance tradeoff.)
+
+  3. Consistency: An estimator $\hat{\theta}$ is consistent for $\theta$ if $\hat{\theta} \xrightarrow{p} \theta$. ($\xrightarrow{p}$ is read "converges in probability") It is an asymptotic property: if we collect more and more data, the probability that our estimate is far from the true $\theta$ will be close to zero. If an estimator is not consistent, we are likely to fail to find the true value even with infinite data.
+
+Example: say we are interested in the height of the class. The average height is our estimand ($\theta=\mathbb{E}(X)$) An example of a biased estimator would be if we took a sample of ten people from the class, and assumed the tallest person in the sample (i.e., estimator is $\hat{\theta}=\text{max}(h)$) was the average height of the class. This is biased, because our estimate would almost always be high, and certainly high on average. An example of an inefficient estimator would be to sample one person from the class, and use their height (i.e., $\hat{\theta}=h_1$). On average, we would be correct -- sometimes we'd pick a tall student, other times a short student, but on average we'd pick an average student. But our estimates would fly all over the place. As a result, this estimator is non consistent as well.
+
+
+## A note about matrices
+* <span style="color:purple;">Related to Pset1 Problem 3</span>
+
+This class requires a bit of linear algebra, especially nearer to the start of the course. Linear algebra is the branch of math dealing with vectors and matrices. A vector is a series of numbers or values that is one dimensional, for example: $X = [1, 3, 5]$. A matrix is a set of data which is stored in a rectangular format: in rows and columns. We often organize our data such that each row is an observation, and each column is a covariate (property of that observation). When vectors are interacted with matrices, we typically specify if the vector is a "row vector" (a vector set up to look like a row) or a "column vector" (a vector set up to look like a column). Matrices are often written in bold, so the matrix Y is written as: $\mathbf{Y}$.
+
+You should take some time to review addition, subtraction, and multiplication of matrices. In specific, you should know that in order to multiple a matrix with another matrix (or vector), their dimensions must be <span style="color:red;">conformable</span>. Conformability means that when multiplying matrices $\mathbf{A} \times \mathbf{B}$, the number of columns of $\mathbf{A}$ must be equal to the number of rows of $\mathbf{B}$. You should get comfortable understanding the dimensions of matrices multiplied together. For example, if $\mathbf{A}$ is a 3x5 matrix and $\mathbf{B}$ is a 5x10 matrix, the result of $\mathbf{A} \times \mathbf{B}$ will be a 3x10 matrix. The result of $\mathbf{B} \times \mathbf{A}$ will be undefined, because the matrices are not conformable.
+
+In addition addition, subtraction, and multiplication, you should be concerned with two other matrix operations: <span style="color:red;">transpose</span> and <span style="color:red;">inverse</span>. 
+
+First, transposing. When you transpose, you essentially "mirror" the matrix about its diagonal. This is the same as saying that column $i$ of a matrix is row $i$ of its transpose. Here is a mathematical example:
+
+$$
+  \mathbf{A} = \begin{bmatrix}
+    \color{red} 1 & \color{red} 3 & \color{red} 7 \\
+    \color{blue} 6 & \color{blue} 4 & \color{blue} 9 \\
+    \color{orange} 3 & \color{orange} 5 & \color{orange} 1
+  \end{bmatrix} \\
+$$
+
+Then, $\mathbf{A}$'s transpose, which we write as $\mathbf{A}'$ or $\mathbf{A}^\intercal$:
+
+$$
+  \mathbf{A}^{\intercal} = \begin{bmatrix}
+    \color{red} 1 & \color{blue} 6 & \color{orange} 3 \\
+    \color{red} 3 & \color{blue} 4 & \color{orange} 5 \\
+    \color{red} 7 & \color{blue} 9 & \color{orange} 1
+  \end{bmatrix} \\
+$$
+
+In particular, you will likely run into the construction $\mathbf{X}^{\intercal} \mathbf{X}$; this is the matrix world equivalent of "squaring" the matrix. Imagine $\mathbf{X}$ is a 5x10 matrix (5 rows, 10 columns), then $\mathbf{X}^{\intercal} \mathbf{X}$ produces a matrix which is 10x10, while $\mathbf{X} \mathbf{X}^{\intercal}$ produces a matrix which is 5x5. You sometimes hear these approaches called an "dot product" and "outer product" respectively.
+
+Some useful properties of a matrix transpose:
+
+$$
+  (\mathbf{A}^{\intercal})^{\intercal} = \mathbf{A} \\
+  (\mathbf{AB})^{\intercal} = \mathbf{B}^{\intercal} \, \mathbf{A}^{\intercal} \\
+  (\mathbf{A} + \mathbf{B})^{\intercal} = \mathbf{A}^{\intercal} + \mathbf{B}^{\intercal} \\
+  (c \mathbf{A})^{\intercal} = c \mathbf{A}^{\intercal} \\
+$$
+
+The inverse of a matrix is an operation that is similar in function to the inverse of a number. In particular, $\mathbf{A} \mathbf{A}^{-1} = \mathbf{A}^{-1} \mathbf{A} = \mathbb{I}_{n}$. $\mathbb{I}_n$ refers to the "identity matrix", a matrix where every diagonal cell is 1, and every off-diagonal cell is 0. The identity matrix is the matrix version of "1". Multiplying anything by a conformable identity matrix will not change it. So, then, we often write: $\mathbf{A} \mathbb{I}_n = \mathbf{A}$
+
+An inverse only exists if the matrix $\mathbf{A}$ is square (why does the matrix have to be sqaure? Think about comformability) in addition to a few other criteria. One that you should know: the matrix must not be <span style="color:red;">rank deficient</span>. This is fancy linear algebra talk to mean that no column is an exact multiple of any other column, or a combination of other columns. This, incidentally, is why OLS does not work under "perfect multicollinearity": because the OLS estimator $\hat{\beta} = (\mathbf{X}^{\intercal} \mathbf{X})^{-1} \mathbf{X}^{\intercal} Y$ needs to invert the quantity $(\mathbf{X}^{\intercal} \mathbf{X})$, it requires that $\mathbf{X}$ not be rank-deficient. If a matrix has no inverse (is rank-deficient), it is called <span style="color:red;">singular</span>.
+
+Properties of inverses you might be interested in:
+
+$$
+  (\mathbf{A} \mathbf{A}^{-1}) = \mathbb{I}_n \\
+  (\mathbf{A}^{-1})^{-1} = \mathbf{A} \\
+  (c \mathbf{A})^{-1} = c^{-1} \mathbf{A}^{-1} \\
+  (\mathbf{A}^{\intercal})^{-1} = (\mathbf{A}^{-1})^{\intercal}
+$$
+
+You may remember from 200B that linear algebra is used to solve for $\hat{\beta}$ when doing OLS. Remember that OLS assumes the following model of the world:
+
+$$
+  Y = \mathbf{X} \beta + \epsilon
+$$
+We estimate this by estimating the quantity $\hat{\beta}$, so:
+
+$$
+  Y = \mathbf{X} \hat{\beta} + e \\
+  e = Y - \mathbf{X} \hat{\beta}
+$$
+
+From here, we are interested in minimizing the "sum of squared errors". Remember the Matrix equivalent of "squaring and summing":
+
+$$
+  e^{\intercal} e = (Y - \mathbf{X} \hat{\beta})^{\intercal} (Y - \mathbf{X} \hat{\beta})
+$$
+
+A question in the first assignment has you solving OLS from here by minimizing the left hand side. How do we do this? Begin by expanding the equation on the right hand side. Next, think back to earlier math experiences: we can minimize by finding where the first-order derivative of the quantity is 0 (the "first order condition"). So to solve for $\hat{\beta}$ you need to take the first order derivative of this quantity with respect to $\hat{\beta}$. Finally, solve the resulting derivative to get $\hat{\beta}$ on one side of the equation. These tips may help you solve this question.
+
+One useful resources on the internet when it comes to understanding the matrix math behind various properties of OLS is the "NYU OLS in Matrix Form Notes". This 15 page set of notes will tell you a lot of things you need to know about OLS:
+
+[Link here](https://web.stanford.edu/~mrosenfe/soc\_meth\_proj3/matrix\_OLS\_NYU\_notes.pdf) 
+
+In particular, you may find this useful to understand more about taking the derivative of a matrix.
+
+It is fine to use these resources to help complete your assignments, but it is our expectation that if you do, you take the time, on your own, to digest the claims being made and explain them in your proof -- anyone can copy these proofs into a homework document, but understanding comes from learning and internalizing the steps and processes used.
+
+
+
+# Defining your custom fuctions in R
+* Often times you will need a certain procedure to run multiple times with only slightly different inputs. While computing the mean of a vector or plotting two vectors can be done using built-in functions, many times you need to write custom functions that can be quite complex. Functions are named, have arguments, and return some value. In R, it's easy to create your own function, which would make your workflow more efficient.
+
+* For example, imagine we wanted to write a custom mean function. The name of our function will be `my_mean`. The argument to our function will be `x`, which is some numeric vector. Lastly the value we return will be the average of this vector.
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+
+#easy one to compute mean
+my_mean <- function(x) {
+  xbar <- sum(x) / length(x)
+  return(xbar)
+}
+my_mean(c(1,2,3,4))
+```
+
+* Now let's make a complicated function (<span style="color:purple;">Hint for Pset1 Problem 5</span>, but it's different!!!): Draw $n$ sample size $r$ times from normal distribution, calculate mean of each draw (i.e., sample mean), and get an 80% confidence interval for the sample mean, then compute coverage rate (proportion of estimates that fall within confidence interval).
+
+```{r, message=FALSE, warning=FALSE}
+#arguments - n: sample size, r: repeat number, pars: parameters (1x2 vector)
+sample_mean_ci <- function(n, r=1000, pars){ #you can assign default using "="
+  mu <- pars[1] #true mean is mu
+  replicate(r, { #use replicate function to do r times
+    samp <- rnorm(n, mean=pars[1], sd=sqrt(pars[2]))
+    data.frame(mean = mean(samp),
+               #using t-distribution confidence interval
+               lower = mean(samp) - sd(samp)/sqrt(n)*qt(1 - 0.2/2, length(samp)-1),
+               upper = mean(samp) + sd(samp)/sqrt(n)*qt(1 - 0.2/2, length(samp)-1))
+  }, simplify = FALSE) %>% bind_rows() %>%
+    rownames_to_column(var = "replicate") %>%
+    mutate(cover = lower < mu & upper > mu) %>% #coverage of true mean
+    mutate(coverage = mean(cover))
+}
+
+#store result: e.g., sample size 100, repeat 1000 times, Normal(1, 4)
+true_mean <- 1
+result <- sample_mean_ci(n=100, r=1000, pars=c(true_mean, 4))
+
+#plot the first 100 of these intervals: for illustration purposes
+ggplot(result, aes(x = lower, xend = upper, y = replicate, yend = replicate, col=cover)) +
+  #differentiate colors (`col`) based on `cover` indicating whether it contains true mean
+  geom_segment() + 
+  geom_vline(xintercept = true_mean) + #true mean here
+  annotate(geom="text", x=0.5, y=95, size=4, 
+           label=paste0("Coverage Rate:", round(result$coverage, 3)*100, "%")) +
+  #plot first 100 rows by `limits` + adjust y-axis ticks by `breaks`
+  scale_y_discrete(breaks = seq(25, 100, by=25), limits = seq(1, 100, by=1)) +
+  labs(title="80% Confidence Intervals for 100 random samples", x="Sample Mean", y="Replicate") +
+  scale_colour_discrete(name  ="Interval Covers Truth?") +
+  theme_bw() + theme(legend.position = "bottom")
+```
+
+
+
+
+
+
+
+
+
+
